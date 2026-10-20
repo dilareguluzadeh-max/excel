@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDF 1 — Introduction to Data Analytics | Baku Engineering University</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <script src="env.js"></script>
+    <script src="sha256.js"></script>
+    <script src="exam_data.js"></script>
+    <script src="sheetengine.js"></script>
+    <script src="grader.js"></script>
+    <script src="sheet-ui.js"></script>
+    <style>
+        :root {
+            --navy: #14305a;
+            --navy-dark: #0e2343;
+            --gold: #a8873a;
+            --bg: #f2f3f5;
+            --paper: #ffffff;
+            --text: #1b1f24;
+            --muted: #5a6370;
+            --border: #c8cdd4;
+            --border-light: #e1e4e8;
+            --ok: #1d6b3a;
+            --ok-bg: #eef6f0;
+            --bad: #9b1c1c;
+            --bad-bg: #fbefef;
+            --warn: #8a5a00;
+            --code-bg: #f6f7f9;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        input, textarea { user-select: text; -webkit-user-select: text; }
+
+        body {
+            font-family: 'Noto Sans', 'Segoe UI', Arial, sans-serif;
+            font-size: 15px;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2, h3 { font-family: 'Noto Serif', Georgia, serif; font-weight: 700; color: var(--navy-dark); }
+
+        /* Universitet başlığı */
+        .uni-header {
+            background: var(--navy);
+            color: #fff;
+            border-bottom: 3px solid var(--gold);
+        }
+        .uni-header-inner {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .uni-name { font-family: 'Noto Serif', Georgia, serif; font-size: 17px; font-weight: 700; letter-spacing: 0.06em; }
+        .uni-sub { font-size: 12.5px; opacity: 0.85; margin-top: 2px; }
+        .uni-course { font-size: 13px; text-align: right; opacity: 0.95; line-height: 1.4; }
+
+        /* İmtahan status paneli */
+        .statusbar {
+            background: var(--paper);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: none;
+        }
+        .statusbar-inner {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 13.5px;
+        }
+        .statusbar .group { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+        .statusbar .label { color: var(--muted); }
+        .statusbar b { font-weight: 600; }
+        .timer { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 500; }
+        .violations.v1, .violations.v2 { color: var(--bad); }
+
+        .container { max-width: 1180px; width: 100%; margin: 24px auto; padding: 0 16px; flex: 1; }
+        .narrow { max-width: 620px; }
+        .xl-skill { color: var(--muted); font-size: 13px; }
+        .xl-steps li { margin-bottom: 4px; }
+        .result.partial { display: block; background: #fff8e6; border-left-color: #d9a400; color: #6b4a00; }
+        .result.partial .head { color: #8a5a00; }
+        .result .chk { list-style: none; margin-top: 6px; font-size: 13px; padding-left: 0; }
+
+        .panel {
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            margin-bottom: 18px;
+        }
+        .panel-head {
+            border-bottom: 1px solid var(--border-light);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+        }
+        .panel-head h2 { font-size: 18px; }
+        .panel-head .task-id { font-weight: 700; color: var(--navy); margin-right: 6px; }
+        .panel-head .title { font-weight: 600; font-size: 15px; }
+        .panel-head .points { color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+        .panel-body { padding: 18px 20px; }
+
+        .info-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 18px; }
+        .info-table td { border: 1px solid var(--border-light); padding: 7px 10px; }
+        .info-table td:first-child { color: var(--muted); width: 42%; background: #fafbfc; }
+
+        .rules { font-size: 14px; line-height: 1.6; padding-left: 20px; margin-bottom: 20px; }
+        .rules li { margin-bottom: 4px; }
+        .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--navy); margin-bottom: 8px; }
+
+        .field { margin-bottom: 14px; }
+        .field label { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 5px; }
+        .field input {
+            width: 100%;
+            padding: 9px 11px;
+            font: inherit;
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            background: #fff;
+        }
+        .field input:focus, textarea.code-input:focus, .single-input:focus { outline: 2px solid var(--navy); outline-offset: -1px; }
+        .hint { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+        .sys-status { font-size: 12.5px; color: var(--muted); margin: 4px 0 16px; }
+
+        /* Düymələr */
+        .btn {
+            font: inherit;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 9px 18px;
+            border-radius: 2px;
+            border: 1px solid var(--navy);
+            background: var(--navy);
+            color: #fff;
+            cursor: pointer;
+        }
+        .btn:hover { background: var(--navy-dark); }
+        .btn:disabled { opacity: 0.6; cursor: wait; }
+        .btn-outline { background: #fff; color: var(--navy); }
+        .btn-outline:hover { background: #eef1f6; }
+        .btn-danger { background: var(--bad); border-color: var(--bad); }
+        .btn-danger:hover { background: #7f1616; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-block { width: 100%; padding: 11px; }
+
+        /* Notebook mətni */
+        .task-page .md, .task-page .md *, .task-page pre, .task-page pre * { user-select: text; -webkit-user-select: text; }
+        .md { font-size: 14.5px; line-height: 1.65; margin-bottom: 14px; }
+        .md p, .md ul, .md ol, .md .math, .md pre, .md table { margin-bottom: 10px; }
+        .md ul, .md ol { padding-left: 22px; }
+        .md h2 { font-size: 21px; margin: 8px 0 6px; }
+        .md h3 { font-size: 17px; margin: 6px 0 8px; }
+        .md h4 { display: none; } /* tapşırıq başlığı panelin başlığındadır */
+        .md hr { display: none; }
+        .md code { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--code-bg); border: 1px solid var(--border-light); padding: 0 4px; }
+        .md pre code { border: none; padding: 0; background: none; }
+        .md table { border-collapse: collapse; font-size: 13.5px; }
+        .md th, .md td { border: 1px solid var(--border); padding: 4px 10px; }
+        .dep-note { background: #fbf5e6; border: 1px solid #e3cf9f; border-left: 4px solid var(--warn); padding: 9px 12px; margin-bottom: 14px; font-size: 14px; color: #4d3500; }
+        .section-block { margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--navy); }
+        .section-block .md { margin-bottom: 4px; }
+
+        pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            background: var(--code-bg);
+            border: 1px solid var(--border-light);
+            padding: 10px 14px;
+            overflow-x: auto;
+        }
+
+        textarea.code-input {
+            width: 100%;
+            min-height: 140px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            background: #fff;
+            resize: vertical;
+            tab-size: 4;
+            white-space: pre;
+            overflow-x: auto;
+            color: var(--text);
+        }
+
+        .single-input { width: 220px; padding: 8px 11px; font: inherit; border: 1px solid var(--border); border-radius: 2px; }
+
+        .code-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+        .result { display: none; margin-top: 10px; padding: 9px 12px; font-size: 14px; line-height: 1.5; border: 1px solid var(--border-light); border-left-width: 4px; }
+        .result.ok { display: block; background: var(--ok-bg); border-left-color: var(--ok); }
+        .result.bad { display: block; background: var(--bad-bg); border-left-color: var(--bad); }
+        .result.info { display: block; background: #f7f8fa; border-left-color: var(--border); color: var(--muted); }
+        .result .head { font-weight: 600; }
+        .result.ok .head { color: var(--ok); }
+        .result.bad .head { color: var(--bad); }
+        .result .detail { margin-top: 3px; font-size: 13.5px; }
+        .result pre { margin-top: 8px; font-size: 12px; white-space: pre-wrap; background: #fff; }
+
+        .options-list { display: flex; flex-direction: column; gap: 6px; }
+        .option-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 12px;
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+            font-size: 14.5px;
+            line-height: 1.45;
+        }
+        .option-label:hover { background: #f7f8fa; }
+        .option-label.selected { border-color: var(--navy); background: #eef1f6; }
+        .option-label input { margin-top: 4px; accent-color: var(--navy); }
+        .option-key { font-weight: 600; min-width: 18px; }
+
+        .finish-row { text-align: center; margin: 28px 0 48px; }
+
+        /* Səhifələr: hər səhifədə bir tapşırıq */
+        .task-page { display: none; }
+        .task-page.current { display: block; }
+        .task-page .section-block { margin-top: 4px; }
+        .pager { padding: 12px 16px; margin-bottom: 16px; }
+        .pager-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .pager-head b { font-size: 15px; }
+        .page-nav { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+        .nav-btn {
+            font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 0;
+            border: 1px solid var(--border); background: #fff; color: var(--text); cursor: pointer; border-radius: 2px;
+        }
+        .nav-btn:hover { border-color: var(--navy); }
+        .nav-btn.answered { background: #e6ebf3; border-color: #9fb0c8; }
+        .nav-btn.current { background: var(--navy); border-color: var(--navy); color: #fff; }
+        .page-legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+        .page-legend i { display: inline-block; width: 11px; height: 11px; border: 1px solid var(--border); margin-right: 5px; vertical-align: -1px; }
+        .page-buttons { display: flex; justify-content: space-between; gap: 10px; margin: 18px 0 48px; }
+        @media (max-width: 640px) { .page-nav { grid-template-columns: repeat(5, 1fr); } }
+
+        /* Modallar */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(14, 35, 67, 0.82);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        #warning-overlay { z-index: 10001; }
+        .modal {
+            background: var(--paper);
+            max-width: 500px;
+            width: 100%;
+            border-top: 4px solid var(--navy);
+            padding: 24px 26px;
+        }
+        .modal.alert { border-top-color: var(--bad); }
+        .modal h3 { font-size: 19px; margin-bottom: 10px; }
+        .modal.alert h3 { color: var(--bad); }
+        .modal p { font-size: 14.5px; line-height: 1.6; margin-bottom: 12px; }
+        .modal .counter { font-weight: 700; color: var(--bad); margin-bottom: 18px; }
+        .modal .actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--navy-dark);
+            color: #fff;
+            padding: 9px 16px;
+            font-size: 13.5px;
+            z-index: 10002;
+            display: none;
+        }
+
+        .uni-footer { text-align: center; font-size: 12px; color: var(--muted); padding: 18px 16px 24px; }
+        .uni-footer a { color: var(--muted); }
+
+        #exam-screen, #resume-screen, #complete-screen { display: none; }
+
+        @media (max-width: 640px) {
+            .uni-course { text-align: left; }
+            .panel-head { flex-direction: column; gap: 2px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="uni-header">
+        <div class="uni-header-inner">
+            <div>
+                <div class="uni-name">BAKU ENGINEERING UNIVERSITY</div>
+                <div class="uni-sub">Faculty of Information and Computer Technologies · Computer Engineering</div>
+            </div>
+            <div class="uni-course">Introduction to Data Analytics<br>Mid-semester assessment — SDF 1</div>
+        </div>
+    </header>
+
+    <!-- İmtahan zamanı status paneli -->
+    <div id="statusbar" class="statusbar">
+        <div class="statusbar-inner">
+            <div class="group">
+                <span><span class="label">Student:</span> <b id="display-student-name"></b></span>
+                <span><span class="label">Seat No.:</span> <b id="display-student-no"></b></span>
+                <span><span class="label">Variant:</span> <b id="display-variant"></b></span>
+            </div>
+            <div class="group">
+                <span id="violations-display" class="violations"><span class="label">Warnings:</span> <b>0 / 3</b></span>
+                <span><span class="label">Time left:</span> <b id="timer-display" class="timer">80:00</b></span>
+                <button class="btn btn-sm" onclick="openFinishModal()">Finish exam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. GİRİŞ -->
+    <main id="login-screen" class="container narrow">
+        <div class="panel">
+            <div class="panel-head"><h2>Exam login</h2></div>
+            <div class="panel-body">
+                <table class="info-table">
+                    <tr><td>Course</td><td>Introduction to Data Analytics (Excel &amp; Google Sheets)</td></tr>
+                    <tr><td>Assessment</td><td>SDF 1 (mid-semester)</td></tr>
+                    <tr><td>Year / group</td><td>Year 1, group <span id="group-name"></span></td></tr>
+                    <tr><td>Duration</td><td>80 minutes</td></tr>
+                    <tr><td>Tasks</td><td>6 practical tasks (in the built-in spreadsheet), 100 points</td></tr>
+                </table>
+
+                <div class="section-title">Exam rules</div>
+                <ol class="rules">
+                    <li>The exam is taken in full-screen mode.</li>
+                    <li>Switching to another window or tab (including Alt+Tab), minimizing the browser, leaving full-screen mode or refreshing the page counts as a rule violation.</li>
+                    <li>On the third violation the exam is cancelled automatically and the result is recorded as 0 points.</li>
+                    <li>Ctrl+C / Ctrl+V work only inside the exam: you can copy and paste spreadsheet cells (relative references shift like in Excel), but pasting text from outside or copying tasks out of the exam is not possible. Right-click and the browser developer tools are blocked.</li>
+                    <li>Each page contains one task. You can move between tasks at any time — your work is saved.</li>
+                    <li>Every task has a spreadsheet editor (formula bar, fill, number formats, Data Validation, Conditional Formatting, PivotTable, Chart). Use the “Check” button to test your solution — a partially correct solution earns partial points.</li>
+                </ol>
+
+                <div class="field">
+                    <label for="input-name">Full name</label>
+                    <input type="text" id="input-name" autocomplete="off" maxlength="80">
+                </div>
+                <div class="field">
+                    <label for="input-id">Seat number on the list</label>
+                    <input type="text" id="input-id" autocomplete="off" inputmode="numeric" maxlength="3">
+                    <div class="hint">Ask your instructor for your seat number (1–35).</div>
+                </div>
+
+                <div class="sys-status">System status: <span id="sys-status-text">checking…</span></div>
+                <div id="login-error" class="result bad" style="display: none; margin-bottom: 12px;"></div>
+                <div id="login-notice" class="result ok" style="display: none; margin-bottom: 12px;"></div>
+                <button id="start-btn" class="btn btn-block" onclick="startExamFlow()">Start exam</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 1b. DAVAM ETMƏ (səhifə yeniləndikdə) -->
+    <main id="resume-screen" class="container narrow">
+        <div class="panel">
+            <div class="panel-head"><h2>Exam in progress</h2></div>
+            <div class="panel-body">
+                <p id="resume-desc" style="line-height: 1.6; margin-bottom: 16px;"></p>
+                <button class="btn btn-block" onclick="resumeExam()">Enter full screen and continue</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 2. TAPŞIRIQLAR -->
+    <main id="exam-screen" class="container">
+        <div class="panel pager">
+            <div class="pager-head">
+                <b id="page-label">Task 1 / 6</b>
+                <span class="hint" id="answered-label"></span>
+            </div>
+            <div id="page-nav" class="page-nav"></div>
+            <div class="page-legend">
+                <span><i style="background: var(--navy); border-color: var(--navy);"></i>current task</span>
+                <span><i style="background: #e6ebf3; border-color: #9fb0c8;"></i>answered</span>
+                <span><i></i>not answered</span>
+            </div>
+        </div>
+        <div id="questions-container"></div>
+        <div class="page-buttons">
+            <button id="prev-btn" class="btn btn-outline" onclick="showPage(currentPage - 1)">← Previous task</button>
+            <button id="next-btn" class="btn" onclick="nextOrFinish()">Next task →</button>
+        </div>
+    </main>
+
+    <!-- 3. NƏTİCƏ -->
+    <main id="complete-screen" class="container narrow">
+        <div class="panel">
+            <div class="panel-head"><h2 id="complete-title">Exam completed</h2></div>
+            <div class="panel-body">
+                <p id="complete-desc" style="margin-bottom: 14px; line-height: 1.6;"></p>
+                <table class="info-table" id="complete-table" style="display: none;">
+                    <tr><td>Student</td><td id="res-name"></td></tr>
+                    <tr><td>Seat number</td><td id="res-no"></td></tr>
+                    <tr><td>Variant</td><td id="res-variant"></td></tr>
+                    <tr><td>Score</td><td><b id="display-final-score"></b></td></tr>
+                    <tr><td>Rule violations</td><td id="display-violations-final"></td></tr>
+                </table>
+                <div id="upload-status" class="result info"></div>
+                <p class="hint" style="margin-top: 14px;">Before leaving the computer, show your result to the exam supervisor.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="uni-footer">
+        © Baku Engineering University
+        <span id="teacher-reset" style="display: none;"> · <a href="#" onclick="teacherReset(); return false;">For the supervisor: reset this computer</a></span>
+    </footer>
+
+    <!-- Qayda pozuntusu -->
+    <div id="warning-overlay" class="overlay">
+        <div class="modal alert">
+            <h3 id="warning-title-text">Rule violation recorded</h3>
+            <p id="warning-desc-text"></p>
+            <div class="counter" id="warning-remaining-text"></div>
+            <div class="actions">
+                <button id="warning-btn" class="btn btn-danger" onclick="dismissWarning()">Return to full screen and continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tam ekran tələbi (pozuntu sayılmır) -->
+    <div id="fullscreen-gate" class="overlay">
+        <div class="modal">
+            <h3>Full-screen mode is required</h3>
+            <p>The exam can only continue in full-screen mode.</p>
+            <div class="actions"><button class="btn" onclick="enterFullscreen()">Enter full screen</button></div>
+        </div>
+    </div>
+
+    <!-- Bitirmə təsdiqi -->
+    <div id="finish-overlay" class="overlay">
+        <div class="modal">
+            <h3>Finish the exam</h3>
+            <p id="finish-desc"></p>
+            <div class="actions">
+                <button class="btn btn-outline" onclick="closeFinishModal()">Go back</button>
+                <button id="finish-confirm-btn" class="btn" onclick="confirmFinishExam()">Confirm and finish</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // ====================================================================
+        // KONFİQURASİYA
+        // ====================================================================
+        const SUPABASE_URL = (window.__ENV && window.__ENV.SUPABASE_URL) || localStorage.getItem("exam_supabase_url") || "";
+        const SUPABASE_ANON_KEY = (window.__ENV && window.__ENV.SUPABASE_ANON_KEY) || localStorage.getItem("exam_supabase_key") || "";
+        const ADMIN_HASH = (window.__ENV && window.__ENV.ADMIN_PASSWORD_HASH) || localStorage.getItem("exam_admin_hash") || ""; // yalnız kompüteri sıfırlamaq üçün
+
+        const GROUP_NAME = "116i";
+        const VARIANTS = ["A", "B", "C", "D", "E"];
+        const GROUP_SIZE = 35;               // 35 students → 7 per variant
+        const EXAM_DURATION_SEC = 80 * 60;   // 80 dəqiqə
+        const MAX_VIOLATIONS = 3;
+        const SESSION_KEY = "sdf1_exam_session_v3";
+
+        // Variant qaydası telebeler_35.py ilə eynidir: (sıra - 1) % 5
+        function variantFor(sira) {
+            return VARIANTS[(sira - 1) % VARIANTS.length];
+        }
+
+        let supabaseClient = null;
+        try {
+            if (SUPABASE_URL.startsWith("http") && window.supabase) {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch (e) {
+            console.log("Supabase setup:", e);
+        }
+
+        // ====================================================================
+        // KÖMƏKÇİ FUNKSİYALAR
+        // ====================================================================
+        const $ = (id) => document.getElementById(id);
+        $("group-name").textContent = GROUP_NAME;
+
+        function escapeHtml(s) {
+            return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        // Yoxlama mesajının əvvəlindəki işarəni (✅/❌) rəsmi görünüş üçün çıxarır
+        const plainMsg = (msg) => String(msg || "").replace(/^\S+\s+/, "");
+
+        let toastTimer = null;
+        function showToast(text) {
+            const t = $("toast");
+            t.textContent = text;
+            t.style.display = "block";
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { t.style.display = "none"; }, 2500);
+        }
+
+        function updateSysStatus() {
+            const el = $("sys-status-text");
+            if (!supabaseClient) el.innerHTML = '<span style="color: var(--warn);">results cannot be sent to the database — tell the exam supervisor</span>';
+            else if (window.SheetEngine && window.Grader && window.SheetUI) el.innerHTML = '<span style="color: var(--ok);">ready</span>';
+            else el.innerHTML = '<span style="color: var(--bad);">spreadsheet module failed to load — refresh the page</span>';
+        }
+
+        // ====================================================================
+        // SESSİYA (səhifə yenilənsə belə xəbərdarlıqlar, vaxt və cavablar itmir)
+        // ====================================================================
+        let session = null;
+
+        function loadSession() {
+            try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch (e) { return null; }
+        }
+
+        function saveSession() {
+            try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) {}
+        }
+
+        let saveTimer = null;
+        function saveSessionSoon() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveSession, 400);
+            if (session && session.status === "active") liveSyncSoon(3000);
+            if (typeof updateNav === "function") updateNav();
+        }
+
+        // ====================================================================
+        // CANLI İZLƏMƏ (backend: Supabase — student_heartbeat funksiyası + Realtime kanalı)
+        // Tələbənin vəziyyəti (cavablar, xəbərdarlıqlar, "Kodu yoxla" nəticələri) serverə
+        // göndərilir və müəllim panelinə dərhal siqnal verilir.
+        // ====================================================================
+        let liveChannel = null, liveTimer = null, liveInterval = null, liveWarned = false;
+        let resetCheck = null;
+
+        function setupRealtime() {
+            if (!supabaseClient || liveChannel) return;
+            try {
+                liveChannel = supabaseClient.channel("sdf1-live", { config: { broadcast: { self: false } } });
+                liveChannel.on("broadcast", { event: "reset" }, () => {
+                    if (resetCheck) resetCheck();
+                    if (session && session.status === "active" && examActive) liveSync();
+                });
+                liveChannel.subscribe();
+            } catch (e) {
+                liveChannel = null;
+            }
+        }
+
+        function pingTeacher() {
+            if (!liveChannel) return;
+            try { liveChannel.send({ type: "broadcast", event: "changed", payload: {} }); } catch (e) {}
+        }
+
+        async function liveSync() {
+            clearTimeout(liveTimer);
+            if (!supabaseClient || !session || !session.sessionId) return;
+            const final = session.status === "finished" && session.record;
+            const state = !final ? "active" : (session.record.status === "KƏNARLAŞDIRILDI_3_HAQQ" ? "terminated" : "finished");
+            const answers = session.answers || {};
+            const tasks = activeVariant ? activeVariant.tasks : [];
+            const answered = tasks.filter(isAnswered).length;
+            try {
+                const { data: liveState, error } = await supabaseClient.rpc("student_heartbeat", {
+                    p_session_id: session.sessionId,
+                    p_group: session.group || GROUP_NAME,
+                    p_sira: String(session.sira),
+                    p_name: session.name,
+                    p_variant: "Variant " + session.variant,
+                    p_started_at: new Date(session.startedAt).toISOString(),
+                    p_violations: Math.min(session.violations, MAX_VIOLATIONS),
+                    p_state: state,
+                    p_progress: {
+                        answers, answered, total: tasks.length,
+                        tested: session.tested || {},
+                        current: pages[currentPage] ? pages[currentPage].id : null,
+                        violation_log: session.log || [],
+                        score: final ? session.record.score : null,
+                    },
+                });
+                if (error) {
+                    if (!liveWarned) { console.warn("Canlı izləmə:", error.message); liveWarned = true; }
+                    return;
+                }
+                if (liveState === "released" && session.status === "active") {
+                    stopReleasedSession();
+                    return;
+                }
+                pingTeacher();
+            } catch (e) {}
+        }
+
+        function liveSyncSoon(ms) {
+            clearTimeout(liveTimer);
+            liveTimer = setTimeout(liveSync, ms);
+        }
+
+        function startLiveSync() {
+            if (!session.sessionId) { session.sessionId = newRecordId(); saveSession(); }
+            liveSync();
+            clearInterval(liveInterval);
+            liveInterval = setInterval(liveSync, 15000);
+        }
+
+        // ====================================================================
+        // STATE
+        // ====================================================================
+        let activeVariant = null;
+        let examActive = false;
+        let submitting = false;
+        let timerInterval = null;
+        let warningModalOpen = false;
+        let lastViolationAt = 0;
+
+        // ====================================================================
+        // GİRİŞ VƏ VARİANT TƏYİNİ
+        // ====================================================================
+        function parseSira(raw) {
+            const s = String(raw || "").trim();
+            if (!/^\d+$/.test(s)) return null;
+            const n = parseInt(s, 10);
+            return (n >= 1 && n <= GROUP_SIZE) ? n : null;
+        }
+
+        function showLoginError(text) {
+            const el = $("login-error");
+            el.textContent = text;
+            el.style.display = text ? "block" : "none";
+            if (text) $("login-notice").style.display = "none";
+        }
+
+        // Bu nömrə ilə artıq (ləğv edilməmiş) nəticə varmı? Bazaya çatmaq mümkün olmasa imtahana mane olmur.
+        async function seatIsTaken(sira) {
+            if (!supabaseClient) return false;
+            try {
+                const { data, error } = await supabaseClient.rpc("seat_is_taken", { p_group: GROUP_NAME, p_sira: String(sira) });
+                if (error) { console.warn("seat_is_taken:", error.message); return false; }
+                return data === true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Nömrəni serverdə tutur: eyni nömrə ilə eyni anda yalnız bir imtahan gedə bilər
+        // (verilənlər bazasındakı unikal indeks iki eyni anda klikin ikisini də buraxmır).
+        // Nəticə: "ok" | "in_use" | "submitted". Server funksiyası yoxdursa köhnə yoxlamaya keçir.
+        async function claimSeat(sessionId, name, sira, startedAt) {
+            if (!supabaseClient) return "ok";
+            try {
+                const { data, error } = await supabaseClient.rpc("claim_seat", {
+                    p_session_id: sessionId, p_group: GROUP_NAME, p_sira: String(sira), p_name: name,
+                    p_variant: "Variant " + variantFor(sira), p_started_at: new Date(startedAt).toISOString(),
+                });
+                if (!error) return data || "ok";
+                console.warn("claim_seat:", error.message);
+            } catch (e) {}
+            return (await seatIsTaken(sira)) ? "submitted" : "ok";
+        }
+
+        // Müəllim bu sessiyanı dayandırıb nömrəni azad edibsə
+        function stopReleasedSession() {
+            examActive = false;
+            submitting = true;
+            clearInterval(timerInterval);
+            clearInterval(liveInterval);
+            localStorage.removeItem(SESSION_KEY);
+            try { sessionStorage.setItem("sdf1_released_notice", "1"); } catch (e) {}
+            if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            location.reload();
+        }
+
+        async function startExamFlow() {
+            const name = $("input-name").value.trim().replace(/\s+/g, " ");
+            const sira = parseSira($("input-id").value);
+            showLoginError("");
+
+            if (name.length < 3 || !name.includes(" ")) {
+                showLoginError("Enter your full name (first name and surname).");
+                return;
+            }
+            if (!sira) {
+                showLoginError(`Seat number must be between 1 and ${GROUP_SIZE}.`);
+                return;
+            }
+
+            enterFullscreen(); // istifadəçi klikinin içində çağırılmalıdır (yoxlamadan əvvəl)
+            const btn = $("start-btn");
+            btn.disabled = true;
+            btn.textContent = "Checking…";
+            const sessionId = newRecordId();
+            const startedAt = Date.now();
+            const claim = await claimSeat(sessionId, name, sira, startedAt);
+            btn.disabled = false;
+            btn.textContent = "Start exam";
+            if (claim !== "ok") {
+                if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+                showLoginError(claim === "in_use"
+                    ? `Seat ${sira} is currently being used on another computer. If this is your number, contact the exam supervisor.`
+                    : `An exam has already been submitted for seat ${sira}. Restarting is only possible with the supervisor's permission — contact the exam supervisor.`);
+                return;
+            }
+
+            session = {
+                name, group: GROUP_NAME, sira, variant: variantFor(sira),
+                sessionId,
+                startedAt,
+                violations: 0,
+                log: [],
+                answers: {},
+                status: "active",
+            };
+            saveSession();
+            openExam();
+        }
+
+        function resumeExam() {
+            enterFullscreen();
+            openExam();
+            registerViolation("The page was refreshed or closed.");
+        }
+
+        function openExam() {
+            activeVariant = window.EXAM_DATA.variants[session.variant];
+            renderQuestions();
+
+            $("display-student-name").textContent = session.name;
+            $("display-student-no").textContent = session.sira;
+            $("display-variant").textContent = session.variant;
+            updateViolationsDisplay();
+
+            $("login-screen").style.display = "none";
+            $("resume-screen").style.display = "none";
+            $("statusbar").style.display = "block";
+            $("exam-screen").style.display = "block";
+
+            examActive = true;
+            startTimer();
+            startLiveSync();
+        }
+
+        // ====================================================================
+        // TAPŞIRIQLAR (exam_data.js — notebook-lardan yaradılıb)
+        // ====================================================================
+        // Hər tapşırıq ayrıca səhifədədir. Bütün səhifələr bir dəfə yaradılır və sadəcə gizlədilir,
+        // ona görə səhifələr arasında keçəndə yazılanlar itmir.
+        let pages = [];
+        let currentPage = 0;
+
+        function renderQuestions() {
+            const container = $("questions-container");
+            container.innerHTML = "";
+            pages = [];
+            const tasksById = Object.fromEntries(activeVariant.tasks.map(t => [t.id, t]));
+            let sectionHtml = null, fixedCode = null;
+
+            for (const item of activeVariant.items) {
+                if (item.type === "section") {
+                    sectionHtml = item.html;
+                    fixedCode = null;
+                } else if (item.type === "fixed") {
+                    fixedCode = item.code;
+                } else if (item.type === "task") {
+                    const page = document.createElement("div");
+                    page.className = "task-page";
+                    if (sectionHtml) {
+                        const div = document.createElement("div");
+                        div.className = "section-block";
+                        div.innerHTML = `<div class="md">${sectionHtml}</div>`;
+                        page.appendChild(div);
+                    }
+                    if (fixedCode) {
+                        const panel = document.createElement("div");
+                        panel.className = "panel";
+                        panel.innerHTML = `<div class="panel-head"><span class="title">Data</span><span class="points">read-only</span></div><div class="panel-body"><pre></pre></div>`;
+                        panel.querySelector("pre").textContent = fixedCode;
+                        page.appendChild(panel);
+                    }
+                    page.appendChild(renderTask(tasksById[item.id]));
+                    container.appendChild(page);
+                    pages.push({ id: item.id, task: tasksById[item.id], el: page });
+                }
+            }
+
+            $("page-nav").innerHTML = pages.map((p, i) => `<button class="nav-btn" onclick="showPage(${i})">${p.id}</button>`).join("");
+            showPage(Math.min(session.page || 0, pages.length - 1), false);
+
+            if (window.renderMathInElement) {
+                try {
+                    renderMathInElement(container, {
+                        delimiters: [{ left: "$$", right: "$$", display: true }, { left: "$", right: "$", display: false }],
+                        throwOnError: false,
+                    });
+                } catch (e) {}
+            }
+        }
+
+        function isAnswered(t) {
+            const a = (session.answers || {})[t.id];
+            if (t.kind === "sheet") return SheetUI.isChanged(t, a);
+            return t.kind === "code" ? (a !== undefined && a !== t.starter) : String(a || "").trim() !== "";
+        }
+
+        function updateNav() {
+            if (!pages.length) return;
+            const buttons = $("page-nav").children;
+            let answered = 0;
+            pages.forEach((p, i) => {
+                const done = isAnswered(p.task);
+                if (done) answered++;
+                buttons[i].className = "nav-btn" + (done ? " answered" : "") + (i === currentPage ? " current" : "");
+            });
+            $("page-label").textContent = `Task ${pages[currentPage].id} — ${currentPage + 1} / ${pages.length}`;
+            $("answered-label").textContent = `Answered: ${answered} / ${pages.length}`;
+            $("prev-btn").disabled = currentPage === 0;
+            $("prev-btn").style.visibility = currentPage === 0 ? "hidden" : "visible";
+            $("next-btn").textContent = currentPage === pages.length - 1 ? "Confirm answers and finish exam" : "Next task →";
+        }
+
+        function showPage(i, scroll = true) {
+            if (!pages.length) return;
+            i = Math.max(0, Math.min(i, pages.length - 1));
+            pages.forEach((p, k) => p.el.classList.toggle("current", k === i));
+            currentPage = i;
+            if (session) { session.page = i; saveSessionSoon(); }
+            updateNav();
+            if (scroll) window.scrollTo(0, 0);
+        }
+
+        function nextOrFinish() {
+            if (currentPage === pages.length - 1) openFinishModal();
+            else showPage(currentPage + 1);
+        }
+
+        function renderTask(t) {
+            const panel = document.createElement("div");
+            panel.className = "panel";
+            panel.id = `card-${t.id}`;
+            const title = t.title.replace(/^(Tapşırıq\s+[A-F]\d\.|Addım\s+\d\.)\s*/, "").replace(/\s*\(\d+\s*bal\)\s*$/, "");
+            panel.innerHTML = `
+                <div class="panel-head">
+                    <div><span class="task-id">${t.id}.</span><span class="title"></span></div>
+                    <span class="points">${t.pts} pts</span>
+                </div>
+                <div class="panel-body">
+                    <div class="md">${t.html}</div>
+                    <div class="answer"></div>
+                </div>`;
+            panel.querySelector(".title").textContent = title;
+            const box = panel.querySelector(".answer");
+            const saved = session.answers[t.id];
+
+            if (t.kind === "sheet") {
+                const host = document.createElement("div");
+                box.appendChild(host);
+                let init = null;
+                if (saved) { try { init = JSON.parse(saved); } catch (e) { init = null; } }
+                SheetUI.mount(host, { task: t, state: init || t.setup, onChange: (stt) => { session.answers[t.id] = JSON.stringify(stt); saveSessionSoon(); } });
+                const actions = document.createElement("div");
+                actions.className = "code-actions";
+                actions.innerHTML = `<button class="btn btn-sm">Check</button>`;
+                const testBtn = actions.querySelector("button");
+                testBtn.onclick = () => testTask(t.id, testBtn);
+                box.appendChild(actions);
+                const res = document.createElement("div");
+                res.id = `result-${t.id}`;
+                res.className = "result";
+                box.appendChild(res);
+            } else if (t.kind === "code") {
+                const ta = document.createElement("textarea");
+                ta.id = `ans-${t.id}`;
+                ta.className = "code-input";
+                ta.spellcheck = false;
+                ta.value = saved !== undefined ? saved : t.starter;
+                ta.rows = Math.min(Math.max(t.starter.split("\n").length + 1, 6), 24);
+                ta.addEventListener("input", () => { session.answers[t.id] = ta.value; saveSessionSoon(); });
+                ta.addEventListener("keydown", handleCodeKey);
+                box.appendChild(ta);
+                const tip = document.createElement("div");
+                tip.className = "hint";
+                tip.style.marginTop = "4px";
+                tip.textContent = "Colab kimi: Enter avtomatik girinti qoyur, Tab / Shift+Tab girinti artırıb azaldır, Ctrl+/ sətri şərhə çevirir.";
+                box.appendChild(tip);
+
+                const actions = document.createElement("div");
+                actions.className = "code-actions";
+                actions.innerHTML = `
+                    <button class="btn btn-sm">Kodu yoxla</button>
+                    <button class="btn btn-outline btn-sm">Başlanğıc kodu bərpa et</button>`;
+                const [testBtn, resetBtn] = actions.querySelectorAll("button");
+                testBtn.onclick = () => testTask(t.id, testBtn);
+                resetBtn.onclick = () => {
+                    ta.value = t.starter;
+                    session.answers[t.id] = t.starter;
+                    saveSessionSoon();
+                };
+                box.appendChild(actions);
+
+                const res = document.createElement("div");
+                res.id = `result-${t.id}`;
+                res.className = "result";
+                box.appendChild(res);
+            } else if (t.kind === "number") {
+                const label = document.createElement("label");
+                label.className = "hint";
+                label.style.display = "block";
+                label.style.marginBottom = "5px";
+                label.htmlFor = `ans-${t.id}`;
+                label.textContent = "Answer (integer):";
+                const inp = document.createElement("input");
+                inp.type = "text";
+                inp.id = `ans-${t.id}`;
+                inp.className = "single-input";
+                inp.autocomplete = "off";
+                inp.inputMode = "numeric";
+                inp.value = saved || "";
+                inp.addEventListener("input", () => { session.answers[t.id] = inp.value; saveSessionSoon(); });
+                box.append(label, inp);
+            } else if (t.kind === "choice") {
+                const list = document.createElement("div");
+                list.className = "options-list";
+                for (const [key, text] of Object.entries(t.options)) {
+                    const label = document.createElement("label");
+                    label.className = "option-label" + (saved === key ? " selected" : "");
+                    label.innerHTML = `<input type="radio" name="ans-${t.id}" value="${key}"${saved === key ? " checked" : ""}><span class="option-key">${key})</span><span>${text}</span>`;
+                    label.querySelector("input").addEventListener("change", () => {
+                        list.querySelectorAll(".option-label").forEach(l => l.classList.remove("selected"));
+                        label.classList.add("selected");
+                        session.answers[t.id] = key;
+                        saveSessionSoon();
+                    });
+                    list.appendChild(label);
+                }
+                box.appendChild(list);
+            }
+            return panel;
+        }
+
+        // ====================================================================
+        // KOD REDAKTORU — Colab / Jupyter kimi davranış
+        //   Enter: girintini saxlayır, ":" və açıq mötərizədən sonra +4, return/pass/break-dən sonra −4
+        //   Tab / Shift+Tab: sətir və ya seçim üzrə girinti artır/azalır (4 boşluq)
+        //   Backspace: girinti sahəsində 4 boşluğu birdən silir; boş mötərizə/dırnaq cütünü birlikdə silir
+        //   Mötərizə və dırnaqlar avtomatik bağlanır; Ctrl+/ şərhi açıb-bağlayır
+        // ====================================================================
+        const INDENT = "    ";
+
+        function codeEdit(ta, from, to, text, selStart, selEnd) {
+            // execCommand brauzerin Ctrl+Z tarixçəsini saxlayır; alınmazsa setRangeText ilə əvəz edilir
+            ta.focus();
+            ta.setSelectionRange(from, to);
+            let ok = false;
+            try { ok = document.execCommand("insertText", false, text); } catch (err) {}
+            if (!ok || ta.value.slice(from, from + text.length) !== text) {
+                ta.setRangeText(text, from, to, "end");
+                ta.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+            ta.setSelectionRange(selStart ?? from + text.length, selEnd ?? selStart ?? from + text.length);
+        }
+
+        function lineBounds(v, s, e) {
+            const a = v.lastIndexOf("\n", s - 1) + 1;
+            let b = v.indexOf("\n", e);
+            if (b === -1) b = v.length;
+            return [a, b];
+        }
+
+        function indentSelection(ta, outdent) {
+            const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+            const [a, b] = lineBounds(v, s, e > s && v[e - 1] === "\n" ? e - 1 : e);
+            const lines = v.slice(a, b).split("\n");
+            let firstDelta = 0, total = 0;
+            const out = lines.map((ln, i) => {
+                let d;
+                if (outdent) {
+                    const m = ln.match(/^( {1,4}|\t)/);
+                    d = m ? -m[0].length : 0;
+                    if (m) ln = ln.slice(m[0].length);
+                } else if (ln.trim()) {
+                    ln = INDENT + ln; d = INDENT.length;
+                } else d = 0;
+                if (i === 0) firstDelta = d;
+                total += d;
+                return ln;
+            });
+            codeEdit(ta, a, b, out.join("\n"), Math.max(a, s + firstDelta), Math.max(a, e + total));
+        }
+
+        function toggleComment(ta) {
+            const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+            const [a, b] = lineBounds(v, s, e > s && v[e - 1] === "\n" ? e - 1 : e);
+            const lines = v.slice(a, b).split("\n");
+            const all = lines.filter(l => l.trim()).every(l => /^\s*#/.test(l));
+            let total = 0, first = 0;
+            const out = lines.map((ln, i) => {
+                if (!ln.trim()) return ln;
+                const n = all ? ln.replace(/^(\s*)# ?/, "$1") : ln.replace(/^(\s*)/, "$1# ");
+                if (i === 0) first = n.length - ln.length;
+                total += n.length - ln.length;
+                return n;
+            });
+            codeEdit(ta, a, b, out.join("\n"), Math.max(a, s + first), Math.max(a, e + total));
+        }
+
+        const PAIRS = { "(": ")", "[": "]", "{": "}", '"': '"', "'": "'" };
+
+        function handleCodeKey(e) {
+            const ta = e.target;
+            if (e.isComposing || e.ctrlKey && e.key !== "/" || e.metaKey && e.key !== "/") return;
+            const v = ta.value, s = ta.selectionStart, en = ta.selectionEnd;
+
+            if (e.key === "Tab") {
+                e.preventDefault();
+                if (e.shiftKey) return indentSelection(ta, true);
+                if (s !== en && v.slice(s, en).includes("\n")) return indentSelection(ta, false);
+                const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+                const col = s - lineStart;
+                const pad = " ".repeat(4 - (col % 4));     // növbəti 4-lük sütuna qədər
+                return codeEdit(ta, s, en, pad);
+            }
+
+            if ((e.key === "/" ) && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                return toggleComment(ta);
+            }
+
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+                const before = v.slice(lineStart, s);
+                const after = v.slice(en, v.indexOf("\n", en) === -1 ? v.length : v.indexOf("\n", en));
+                let indent = before.match(/^[ \t]*/)[0].replace(/\t/g, INDENT);
+                const code = before.replace(/#.*$/, "").trimEnd();
+                const opener = /[:(\[{]$/.test(code);
+                const closerNext = /^[)\]}]/.test(after.trimStart()) && /[(\[{]$/.test(code);
+                if (opener) indent += INDENT;
+                else if (/^(return|pass|break|continue|raise)\b/.test(before.trim()) && indent.length >= 4) indent = indent.slice(0, -4);
+                if (closerNext) {
+                    const base = indent.slice(0, -4);
+                    return codeEdit(ta, s, en, "\n" + indent + "\n" + base, s + 1 + indent.length);
+                }
+                return codeEdit(ta, s, en, "\n" + indent);
+            }
+
+            if (e.key === "Backspace" && s === en && s > 0) {
+                const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+                const before = v.slice(lineStart, s);
+                if (before.length > 0 && /^ +$/.test(before)) {            // girinti sahəsi
+                    const del = before.length % 4 || 4;
+                    e.preventDefault();
+                    return codeEdit(ta, s - del, s, "");
+                }
+                const pair = v[s - 1] + v[s];
+                if (PAIRS[v[s - 1]] === v[s] && ["()", "[]", "{}", '""', "''"].includes(pair)) {
+                    e.preventDefault();
+                    return codeEdit(ta, s - 1, s + 1, "");
+                }
+                return;
+            }
+
+            if (e.key.length === 1 && !e.altKey) {
+                const ch = e.key, next = v[en] || "";
+                if (s === en && ")]}\"'".includes(ch) && next === ch) {     // bağlayıcının üstündən keç
+                    e.preventDefault();
+                    ta.setSelectionRange(s + 1, s + 1);
+                    return;
+                }
+                if (PAIRS[ch]) {
+                    const prev = v[s - 1] || "";
+                    const isQuote = ch === '"' || ch === "'";
+                    if (s !== en) {                                        // seçimi mötərizəyə al
+                        e.preventDefault();
+                        return codeEdit(ta, s, en, ch + v.slice(s, en) + PAIRS[ch], s + 1, en + 1);
+                    }
+                    if (isQuote && (/\w/.test(prev) || next && /\w/.test(next))) return;   // don't, f'... və s.
+                    if (!isQuote && next && /[\w"'(\[{]/.test(next)) return;
+                    e.preventDefault();
+                    return codeEdit(ta, s, en, ch + PAIRS[ch], s + 1);
+                }
+                // else/elif/except/finally yazıldıqdan sonra ":" qoyulanda girinti avtomatik bir səviyyə geri çəkilir
+                if (ch === ":" && s === en) {
+                    const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+                    const before = v.slice(lineStart, s);
+                    const m = before.match(/^( +)(else|elif\b.*|except\b.*|finally)$/);
+                    if (m && m[1].length >= 4) {
+                        const prevLines = v.slice(0, lineStart).split("\n").filter(l => l.trim());
+                        const prev = prevLines.length ? prevLines[prevLines.length - 1] : "";
+                        const prevIndent = prev.match(/^ */)[0].length;
+                        if (prevIndent < m[1].length && !prev.trimEnd().endsWith(":")) {
+                            e.preventDefault();
+                            const target = Math.max(0, m[1].length - 4);
+                            return codeEdit(ta, lineStart, s, " ".repeat(target) + before.trimStart() + ":");
+                        }
+                    }
+                }
+            }
+        }
+
+        // Yapışdırma: tab→4 boşluq, CRLF→LF və çoxsətirli blokun girintisi kursorun olduğu səviyyəyə uyğunlaşdırılır
+        function smartPaste(ta, text, partial) {
+            text = text.replace(/\r\n?/g, "\n").replace(/\t/g, INDENT).replace(/[ ​﻿]/g, (c) => c === " " ? " " : "");
+            const v = ta.value, s = ta.selectionStart, en = ta.selectionEnd;
+            const lines = text.split("\n");
+            if (lines.length === 1) return codeEdit(ta, s, en, text);
+            const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+            const before = v.slice(lineStart, s);
+            if (!/^ *$/.test(before)) return codeEdit(ta, s, en, text);       // sətrin ortasına yapışdırılır — olduğu kimi
+            // ortaq girintini götür (kopyalama ortada başlayıbsa, ilk sətir sayılmır)
+            const body = partial ? lines.slice(1) : lines;
+            const ind = Math.min(...body.filter(l => l.trim()).map(l => l.match(/^ */)[0].length), 1e9);
+            const cut = ind === 1e9 ? 0 : ind;
+            const dedented = lines.map((l, i) => (partial && i === 0) ? l : l.slice(Math.min(cut, l.match(/^ */)[0].length)));
+            // hədəf səviyyə: kursorun girintisi; boş sətirdə isə əvvəlki sətirdən (":" ilə bitirsə +4) götürülür
+            let base = before;
+            if (before.length === 0) {
+                const prev = v.slice(0, Math.max(0, lineStart - 1)).split("\n").filter(l => l.trim()).pop() || "";
+                base = prev.match(/^ */)[0] + (/:\s*$/.test(prev.replace(/#.*$/, "")) ? INDENT : "");
+                if (!lines[0].trim() ) base = before;
+            }
+            const out = dedented.map((l, i) => (i === 0 ? l : (l.trim() ? base + l : l))).join("\n");
+            const pad = before.length === 0 ? base : "";
+            return codeEdit(ta, s, en, pad + out);
+        }
+
+        function collectAnswers() {
+            const answers = {};
+            const saved = (session && session.answers) || {};
+            for (const t of activeVariant.tasks) {
+                if (t.kind === "sheet") {
+                    answers[t.id] = saved[t.id] || "";
+                } else if (t.kind === "choice") {
+                    const checked = document.querySelector(`input[name="ans-${t.id}"]:checked`);
+                    answers[t.id] = checked ? checked.value : (saved[t.id] || "");
+                } else {
+                    const el = $(`ans-${t.id}`);
+                    answers[t.id] = el ? el.value : (saved[t.id] ?? t.starter ?? "");
+                }
+            }
+            return answers;
+        }
+
+        // ====================================================================
+        // "KODU YOXLA" — tələbənin kodunu notebook-dakı test ilə yoxlayır
+        // ====================================================================
+        function testTask(taskId, btn) {
+            const res = $(`result-${taskId}`);
+            const t = activeVariant.tasks.find(x => x.id === taskId);
+            try {
+                const ans = collectAnswers()[taskId];
+                let stt = null;
+                if (ans) { try { stt = JSON.parse(ans); } catch (e) { stt = null; } }
+                const r = Grader.gradeTask(t, stt || t.setup);
+                session.tested = session.tested || {};
+                session.tested[taskId] = r.ok;
+                saveSessionSoon();
+                res.className = "result " + (r.ok ? "ok" : (r.partial ? "info partial" : "bad"));
+                res.innerHTML = `<div class="head"></div><ul class="chk"></ul>`;
+                res.querySelector(".head").textContent = plainMsg(r.msg);
+                const ul = res.querySelector(".chk");
+                for (const c of r.results) {
+                    const li = document.createElement("li");
+                    li.textContent = (c.ok ? "✓ " : "✗ ") + c.l;
+                    li.style.color = c.ok ? "var(--ok)" : "var(--bad)";
+                    ul.appendChild(li);
+                }
+            } catch (e) {
+                res.className = "result bad";
+                res.textContent = "Error while checking: " + e.message;
+            }
+        }
+
+        // ====================================================================
+        // VAXT
+        // ====================================================================
+        function remainingSeconds() {
+            return Math.max(0, EXAM_DURATION_SEC - Math.floor((Date.now() - session.startedAt) / 1000));
+        }
+
+        function startTimer() {
+            const display = $("timer-display");
+            const tick = () => {
+                const left = remainingSeconds();
+                const m = Math.floor(left / 60), s = left % 60;
+                display.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+                if (left < 300) display.style.color = "var(--bad)";
+                if (left <= 0) {
+                    clearInterval(timerInterval);
+                    finishExam("VAXT_BİTDİ");
+                }
+            };
+            clearInterval(timerInterval);
+            tick();
+            timerInterval = setInterval(tick, 1000);
+        }
+
+        // ====================================================================
+        // QAYDA POZUNTULARI (3 XƏBƏRDARLIQ)
+        // Qeyd: Alt+Tab əməliyyat sistemi səviyyəsindədir, brauzer onu bloklaya bilməz,
+        // lakin pəncərənin fokusu itdiyi üçün dərhal aşkarlanır və pozuntu sayılır.
+        // ====================================================================
+        const fullscreenSupported = !!(document.documentElement.requestFullscreen && document.fullscreenEnabled !== false);
+        let fullscreenDenied = false; // brauzer tam ekrana icazə vermirsə tələbəni bloklamırıq, qeyd edirik
+
+        function enterFullscreen() {
+            $("fullscreen-gate").style.display = "none";
+            const el = document.documentElement;
+            if (el.requestFullscreen && !document.fullscreenElement) {
+                el.requestFullscreen().then(() => { fullscreenDenied = false; }).catch(err => {
+                    console.log("Fullscreen alınmadı:", err);
+                    if (!fullscreenDenied && session && examActive) {
+                        session.log.push({ t: new Date().toISOString(), reason: "The browser did not allow full-screen mode", counted: false });
+                        saveSessionSoon();
+                    }
+                    fullscreenDenied = true;
+                });
+            }
+        }
+
+        function registerViolation(reasonText) {
+            if (!examActive || submitting) return;
+            const now = Date.now();
+            if (warningModalOpen || now - lastViolationAt < 1500) return; // bir hadisə = bir pozuntu
+            lastViolationAt = now;
+
+            session.violations += 1;
+            session.log.push({ t: new Date().toISOString(), reason: reasonText, counted: true });
+            saveSession();
+            liveSync();
+            playAlertSound();
+            updateViolationsDisplay();
+            $("fullscreen-gate").style.display = "none";
+            $("finish-overlay").style.display = "none";
+            warningModalOpen = true;
+
+            const remaining = MAX_VIOLATIONS - session.violations;
+            if (remaining <= 0) {
+                $("warning-title-text").textContent = "Exam cancelled";
+                $("warning-desc-text").textContent = `${reasonText} This is your third rule violation. Your exam has been stopped and your result is recorded as 0 points.`;
+                $("warning-remaining-text").textContent = "Warnings: 3 / 3";
+                $("warning-btn").style.display = "none";
+                $("warning-overlay").style.display = "flex";
+                finishExam("KƏNARLAŞDIRILDI_3_HAQQ");
+            } else {
+                $("warning-title-text").textContent = "Rule violation recorded";
+                $("warning-desc-text").textContent = `${reasonText} After ${remaining} more violation(s) your exam will be cancelled automatically.`;
+                $("warning-remaining-text").textContent = `Warnings: ${session.violations} / ${MAX_VIOLATIONS}`;
+                $("warning-btn").style.display = "";
+                $("warning-overlay").style.display = "flex";
+            }
+        }
+
+        // Pozuntu sayılmayan, lakin qeydə alınan cəhdlər (tərtibatçı alətləri, kopyalama və s.)
+        function logBlockedAttempt(what) {
+            showToast(`${what} is not allowed during the exam.`);
+            if (session && examActive) {
+                session.log.push({ t: new Date().toISOString(), reason: what, counted: false });
+                saveSessionSoon();
+            }
+        }
+
+        function dismissWarning() {
+            $("warning-overlay").style.display = "none";
+            warningModalOpen = false;
+            lastViolationAt = Date.now();
+            enterFullscreen();
+        }
+
+        function updateViolationsDisplay() {
+            const v = session ? Math.min(session.violations, 3) : 0;
+            const el = $("violations-display");
+            el.className = "violations v" + v;
+            el.querySelector("b").textContent = `${v} / ${MAX_VIOLATIONS}`;
+        }
+
+        function playAlertSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sawtooth";
+                osc.frequency.setValueAtTime(440, ctx.currentTime);
+                osc.frequency.setValueAtTime(220, ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.35);
+            } catch (e) {}
+        }
+
+        // 1. Başqa taba keçmə / brauzeri kiçiltmə
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) registerViolation("You left the exam page (another tab or minimized browser).");
+        });
+        // 2. Başqa pəncərəyə / proqrama keçmə (Alt+Tab)
+        window.addEventListener("blur", () => {
+            registerViolation("You left the browser window (another application or Alt+Tab).");
+        });
+        // 3. Tam ekrandan çıxma
+        document.addEventListener("fullscreenchange", () => {
+            if (!document.fullscreenElement) registerViolation("You left full-screen mode.");
+        });
+        // Tam ekran deyilsə imtahanı bağla (pozuntu kimi sayılmır)
+        setInterval(() => {
+            if (examActive && !submitting && fullscreenSupported && !fullscreenDenied && !document.fullscreenElement && !warningModalOpen) {
+                $("fullscreen-gate").style.display = "flex";
+            }
+        }, 1500);
+
+        // 4. Sağ klik və sürüklə-burax bloklanır
+        for (const [evt, label] of [["contextmenu", "Right-click"], ["drop", "Drag and drop"], ["dragstart", "Drag and drop"]]) {
+            document.addEventListener(evt, (e) => {
+                e.preventDefault();
+                logBlockedAttempt(label);
+            }, true);
+        }
+
+        // 4a. Ctrl+C / Ctrl+X / Ctrl+V yalnız imtahanın DAXİLİNDƏ işləyir.
+        //     Kopyalanan mətn səhifənin öz yaddaşında saxlanılır, sistemin mübadilə buferinə getmir
+        //     (kənara — məs. süni intellektə — köçürmək olmur). Yapışdırma yalnız bu yaddaşdan edilir
+        //     (kənardan gətirilmiş mətn qəbul edilmir və jurnala yazılır).
+        let examClipboard = "";
+        let examClipboardPartial = false;   // kopyalama sətrin ortasından başlayıb (ilk sətirdə girinti yoxdur)
+
+        function editableTarget() {
+            const el = document.activeElement;
+            return el && (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && el.type === "text")) ? el : null;
+        }
+
+        function insertAtCursor(el, text) {
+            el.setRangeText(text, el.selectionStart, el.selectionEnd, "end");
+            el.dispatchEvent(new Event("input"));
+        }
+
+        function handleCopy(e, isCut) {
+            e.preventDefault();
+            try { e.clipboardData.setData("text/plain", ""); } catch (err) {}   // sistem buferinə heç nə getmir
+            const el = editableTarget();
+            if (!el) {
+                // Tapşırığın şərtindən (mətn, kod nümunəsi, verilənlər) seçilmiş hissə — yalnız imtahanın yaddaşına
+                const sel = window.getSelection();
+                const box = $("questions-container");
+                if (sel && !sel.isCollapsed && box.contains(sel.anchorNode) && box.contains(sel.focusNode)) {
+                    examClipboard = sel.toString();
+                    examClipboardPartial = false;
+                } else if (sel && !sel.isCollapsed) {
+                    logBlockedAttempt("Copying text from the page");
+                }
+                return;
+            }
+            if (el.selectionStart === el.selectionEnd) return;
+            examClipboard = el.value.slice(el.selectionStart, el.selectionEnd);
+            const _ls = el.value.lastIndexOf("\n", el.selectionStart - 1) + 1;
+            examClipboardPartial = /\S/.test(el.value.slice(_ls, el.selectionStart));
+            if (isCut) insertAtCursor(el, "");
+        }
+
+        document.addEventListener("copy", (e) => handleCopy(e, false), true);
+        document.addEventListener("cut", (e) => handleCopy(e, true), true);
+        document.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const el = editableTarget();
+            const external = e.clipboardData ? e.clipboardData.getData("text/plain") : "";
+            if (external && external !== examClipboard) logBlockedAttempt("Pasting text from outside");
+            if (el && examClipboard) {
+                if (el.classList.contains("code-input")) smartPaste(el, examClipboard, examClipboardPartial);
+                else insertAtCursor(el, examClipboard);
+            }
+        }, true);
+
+        // 5. Tərtibatçı alətləri və mübadilə buferi qısayolları
+        window.addEventListener("keydown", (e) => {
+            const ctrl = e.ctrlKey || e.metaKey;
+            const code = e.code || "";
+            const devtools =
+                e.key === "F12" ||
+                (ctrl && e.shiftKey && ["KeyI", "KeyJ", "KeyC", "KeyK"].includes(code)) ||   // Ctrl+Shift+I/J/C/K
+                (e.metaKey && e.altKey && ["KeyI", "KeyJ", "KeyC"].includes(code)) ||       // macOS Cmd+Opt+I/J/C
+                (ctrl && ["KeyU", "KeyS", "KeyP"].includes(code));                         // mənbə kodu, saxla, çap
+            if (devtools) {
+                e.preventDefault();
+                e.stopPropagation();
+                logBlockedAttempt("Developer tools and view-source");
+                return;
+            }
+        }, true);
+
+        // 6. Səhifəni bağlamaq / yeniləmək istədikdə xəbərdarlıq
+        window.addEventListener("beforeunload", (e) => {
+            if (examActive && !submitting) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        });
+
+        // ====================================================================
+        // BİTİRMƏ, QİYMƏTLƏNDİRMƏ VƏ GÖNDƏRMƏ
+        // ====================================================================
+        function openFinishModal() {
+            const answers = collectAnswers();
+            const empty = activeVariant.tasks.filter(t => !isAnswered(t)).map(t => t.id);
+            $("finish-desc").textContent = (empty.length ? `Unanswered tasks: ${empty.join(", ")}. ` : "") +
+                "After confirming you will not be able to change your answers.";
+            warningModalOpen = true; // modal açıq olarkən blur pozuntu sayılmasın
+            $("finish-overlay").style.display = "flex";
+        }
+
+        function closeFinishModal() {
+            $("finish-overlay").style.display = "none";
+            warningModalOpen = false;
+        }
+
+        function confirmFinishExam() {
+            $("finish-confirm-btn").disabled = true;
+            finishExam("TAMAMLANDI");
+        }
+
+        async function finishExam(finalStatus) {
+            if (submitting) return;
+            submitting = true;
+            examActive = false;
+            clearInterval(timerInterval);
+            $("finish-overlay").style.display = "none";
+            $("fullscreen-gate").style.display = "none";
+
+            const answers = collectAnswers();
+            session.answers = answers;
+            session.status = "grading";
+            saveSession();
+
+            const scores = {};
+            let grading = "automatic (spreadsheet grader)";
+            let total = 0;
+
+            if (finalStatus === "KƏNARLAŞDIRILDI_3_HAQQ") {
+                grading = "not graded (3 warnings)";
+                await new Promise(r => setTimeout(r, 2500)); // xəbərdarlığı oxumağa vaxt
+            } else {
+                showGradingScreen();
+                let results;
+                try {
+                    results = Grader.gradeVariant(activeVariant, answers).results;
+                } catch (e) {
+                    console.error("Qiymətləndirmə xətası:", e);
+                    results = {};
+                    grading = "not graded: error — re-grade with regrade.js";
+                }
+                for (const t of activeVariant.tasks) {
+                    scores[t.id] = results[t.id] ? results[t.id].pts : 0;
+                    total += scores[t.id];
+                }
+            }
+
+            if (!session.recordId) session.recordId = newRecordId();
+            const record = {
+                id: session.recordId,
+                student_name: session.name,
+                student_group: session.group || GROUP_NAME,
+                student_id: String(session.sira),
+                variant: activeVariant.name,
+                score: finalStatus === "KƏNARLAŞDIRILDI_3_HAQQ" ? 0 : total,
+                max_score: activeVariant.max_score,
+                violations: session.violations,
+                status: finalStatus,
+                answers,
+                breakdown: {
+                    scores,
+                    grading,
+                    started_at: new Date(session.startedAt).toISOString(),
+                    finished_at: new Date().toISOString(),
+                    violation_log: session.log,
+                },
+            };
+
+            session.status = "finished";
+            session.record = record;
+            session.uploaded = false;
+            saveSession();
+
+            try {
+                const hist = JSON.parse(localStorage.getItem("exam_local_submissions") || "[]");
+                hist.push({ ...record, created_at: new Date().toISOString() });
+                localStorage.setItem("exam_local_submissions", JSON.stringify(hist));
+            } catch (e) {}
+
+            if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            showCompleteScreen();
+            uploadRecord();
+            clearInterval(liveInterval);
+            liveSync();
+        }
+
+        function showScreen(id) {
+            for (const s of ["login-screen", "resume-screen", "exam-screen", "complete-screen"]) $(s).style.display = s === id ? "block" : "none";
+            $("statusbar").style.display = id === "exam-screen" ? "block" : "none";
+        }
+
+        function showGradingScreen() {
+            showScreen("complete-screen");
+            $("complete-title").textContent = "Grading your answers";
+            $("complete-desc").textContent = "Please wait and do not close the page.";
+            $("complete-table").style.display = "none";
+            $("upload-status").style.display = "none";
+        }
+
+        function showCompleteScreen() {
+            const r = session.record;
+            showScreen("complete-screen");
+            $("warning-overlay").style.display = "none";
+            $("teacher-reset").style.display = "";
+            $("complete-table").style.display = "";
+            $("upload-status").style.display = "";
+
+            $("res-name").textContent = r.student_name;
+            $("res-no").textContent = r.student_id;
+            $("res-variant").textContent = r.variant;
+            $("display-final-score").textContent = `${r.score} / ${r.max_score}`;
+
+            if (r.status === "KƏNARLAŞDIRILDI_3_HAQQ") {
+                $("complete-title").textContent = "Exam cancelled";
+                $("complete-title").style.color = "var(--bad)";
+                $("complete-desc").textContent = "Because three rule violations were recorded, your exam was stopped and your result is recorded as 0 points.";
+                $("display-violations-final").textContent = "3 (disqualified)";
+            } else {
+                $("complete-title").textContent = r.status === "VAXT_BİTDİ" ? "Time is up" : "Exam completed";
+                $("complete-desc").textContent = r.status === "VAXT_BİTDİ"
+                    ? "Because the time ran out, your answers were accepted and graded automatically."
+                    : "Your answers were accepted and graded.";
+                $("display-violations-final").textContent = String(r.violations);
+            }
+            renderUploadStatus();
+        }
+
+        function renderUploadStatus() {
+            const el = $("upload-status");
+            if (!supabaseClient) {
+                el.className = "result info";
+                el.textContent = "The result was saved on this computer only. Tell the exam supervisor.";
+            } else if (session.uploaded) {
+                el.className = "result ok";
+                el.textContent = "Your result was sent to the exam supervisor.";
+            } else {
+                el.className = "result bad";
+                el.textContent = "The result has not been sent yet. The system is checking the connection and retrying automatically — do not close the page.";
+            }
+        }
+
+        // Nəticənin gizli identifikatoru: müəllim onu ləğv etsə, bu kompüter bunu öyrənə bilsin
+        function newRecordId() {
+            if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+            const b = crypto.getRandomValues(new Uint8Array(16));
+            b[6] = (b[6] & 0x0f) | 0x40;
+            b[8] = (b[8] & 0x3f) | 0x80;
+            const h = [...b].map(x => x.toString(16).padStart(2, "0")).join("");
+            return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+        }
+
+        // Müəllim paneldən "Yenidən başlat" etdikdə tələbənin ekranı avtomatik giriş ekranına qayıdır
+        let resetWatchTimer = null;
+        function watchForReset() {
+            clearInterval(resetWatchTimer);
+            const check = async () => {
+                if (!supabaseClient || !session || !session.uploaded || !session.record) return;
+                try {
+                    let wasReset = false;
+                    if (session.record.id) {
+                        const { data, error } = await supabaseClient.rpc("submission_was_reset", { p_id: session.record.id });
+                        wasReset = !error && data === true;
+                    } else {
+                        // Köhnə versiya ilə göndərilmiş nəticə (id yoxdur): nömrə boşaldılıbsa, müəllim ləğv edib
+                        const { data, error } = await supabaseClient.rpc("seat_is_taken", {
+                            p_group: session.record.student_group || GROUP_NAME, p_sira: String(session.record.student_id) });
+                        wasReset = !error && data === false;
+                    }
+                    if (wasReset) {
+                        clearInterval(resetWatchTimer);
+                        localStorage.removeItem(SESSION_KEY);
+                        try { sessionStorage.setItem("sdf1_reset_notice", "1"); } catch (e) {}
+                        location.reload();
+                    }
+                } catch (e) {}
+            };
+            resetCheck = check;
+            check();
+            resetWatchTimer = setInterval(check, 10000);
+        }
+
+        let uploadRetryTimer = null;
+        async function uploadRecord() {
+            if (!supabaseClient || !session || !session.record || session.uploaded) {
+                renderUploadStatus();
+                if (session && session.uploaded) watchForReset();
+                return;
+            }
+            try {
+                const { error } = await supabaseClient.from("exam_submissions").insert([session.record]);
+                if (error && error.code !== "23505") throw error; // 23505: artıq göndərilib (təkrar cəhd)
+                session.uploaded = true;
+                saveSession();
+                watchForReset();
+            } catch (err) {
+                console.error("Supabase insert xətası:", err);
+                clearTimeout(uploadRetryTimer);
+                uploadRetryTimer = setTimeout(uploadRecord, 10000);
+            }
+            renderUploadStatus();
+        }
+
+        // İmtahan rəhbəri eyni kompüterdə növbəti tələbə üçün sessiyanı sıfırlaya bilər
+        function teacherReset() {
+            const pass = prompt("Instructor password:");
+            if (!pass) return;
+            if (sha256Hex(pass.trim()) !== ADMIN_HASH) {
+                alert("Wrong password.");
+                return;
+            }
+            if (session && session.record && !session.uploaded && supabaseClient &&
+                !confirm("This result has not been sent to the database yet. Reset anyway?")) return;
+            localStorage.removeItem(SESSION_KEY);
+            location.reload();
+        }
+
+        // ====================================================================
+        // İLK YÜKLƏNMƏ
+        // ====================================================================
+        (function init() {
+            if (!window.EXAM_DATA) {
+                $("login-screen").innerHTML = '<div class="panel"><div class="panel-body">exam_data.js was not found. Check that all files are in the same folder.</div></div>';
+                return;
+            }
+            updateSysStatus();
+            setupRealtime();
+
+            try {
+                if (sessionStorage.getItem("sdf1_released_notice")) {
+                    sessionStorage.removeItem("sdf1_released_notice");
+                    const n = $("login-notice");
+                    n.textContent = "The exam supervisor stopped the exam on this computer and released the seat number.";
+                    n.style.display = "block";
+                }
+                if (sessionStorage.getItem("sdf1_reset_notice")) {
+                    sessionStorage.removeItem("sdf1_reset_notice");
+                    const n = $("login-notice");
+                    n.textContent = "The exam supervisor restarted your exam. Enter your details and start the exam again.";
+                    n.style.display = "block";
+                }
+            } catch (e) {}
+
+            session = loadSession();
+            if (!session) return;
+
+            if (session.status === "active" || session.status === "grading") {
+                activeVariant = window.EXAM_DATA.variants[session.variant];
+                if (session.violations >= MAX_VIOLATIONS) {
+                    examActive = true;
+                    finishExam("KƏNARLAŞDIRILDI_3_HAQQ");
+                    return;
+                }
+                const left = remainingSeconds();
+                if (left <= 0) {
+                    renderQuestions();
+                    examActive = true;
+                    finishExam("VAXT_BİTDİ");
+                    return;
+                }
+                showScreen("resume-screen");
+                $("resume-desc").innerHTML = `${escapeHtml(session.name)}, seat No. ${session.sira}. Time left: ${Math.floor(left / 60)} minutes.<br>` +
+                    `<b style="color: var(--bad);">Refreshing the page is recorded as a rule violation.</b> Current warnings: ${session.violations} / ${MAX_VIOLATIONS}.`;
+            } else if (session.status === "finished" && session.record) {
+                activeVariant = window.EXAM_DATA.variants[session.variant];
+                showCompleteScreen();
+                uploadRecord();
+            }
+        })();
+    </script>
+</body>
+</html>

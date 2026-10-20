@@ -1,0 +1,11 @@
+# Vercel yalnız saytın faylarını dərc etsin (təlimat, .js alətləri, .py, .sql və s. açıq olmasın)
+/*
+!index.html
+!admin.html
+!exam_data.js
+!sha256.js
+!sheetengine.js
+!grader.js
+!sheet-ui.js
+!generate-env.js
+!vercel.json
